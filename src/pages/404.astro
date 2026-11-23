@@ -1,0 +1,83 @@
+---
+/**
+ * Not-found page of the project site: GitHub Pages serves dist/404.html for every unknown path under /dexgo/ (so does
+ * `astro preview`). The standalone look of the project page (ProjectLayout): white, the DexGO icons and title, no
+ * personal header, footer, icon or site name, one link to the project page, centred like the page's column.
+ * `data-not-found="dexgo"` on <html> takes the page's white, colours and type from global.css.
+ * A case variant of one of the project's pages (/dexgo/DEMO/, /dexgo/Figure/index.html; GitHub Pages paths are
+ * case-sensitive) is replaced by the lower-case page before the first paint (query and hash kept), so Back does not
+ * return to the 404. A path already in lower case never matches, so it cannot loop.
+ */
+import '../styles/global.css';
+import { url } from '../lib/url';
+
+const home = url('');
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+// The site root ('/dexgo'), the demo or the figure page, with or without the trailing slash or index.html.
+const pagePattern = `^${escapeRegExp(home.replace(/\/$/, ''))}(?:\\/(demo|figure))?(?:\\/(?:index\\.html)?)?$`;
+// Plain ES5, in the head before the stylesheet's first paint.
+const caseVariantScript = `(function(){var p=location.pathname.toLowerCase();if(p===location.pathname)return;var m=new RegExp(${JSON.stringify(pagePattern)}).exec(p);if(m)location.replace(${JSON.stringify(home)}+(m[1]?m[1]+'/':'')+location.search+location.hash)})();`;
+---
+
+<!doctype html>
+<html lang="en" data-not-found="dexgo">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline set:html={caseVariantScript} />
+    <title>Page not found | DexGO</title>
+    <meta name="description" content="The requested page does not exist." />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href={`${home}favicon.ico`} sizes="32x32" />
+    <link rel="icon" href={`${home}favicon.svg`} type="image/svg+xml" />
+    <link rel="apple-touch-icon" href={`${home}apple-touch-icon.png`} />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="site-shell">
+      <main id="main" tabindex="-1">
+        <section class="not-found" aria-labelledby="not-found-title">
+          <h1 id="not-found-title">Page not found</h1>
+          <p class="muted">The page you asked for does not exist, or it has moved.</p>
+          <ul class="not-found-links">
+            <li><a href={home}>DexGO project page</a></li>
+          </ul>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
+
+<style>
+  /* The project page's centred column and its quiet links (underlined on hover only). The sentence keeps the
+     paragraph measure, centred in the column, and balanced, so a phone does not leave one word alone on its second
+     line. */
+  .not-found {
+    max-width: 800px;
+    margin-inline: auto;
+    padding: var(--space-xl) 0 var(--space-2xl);
+    text-align: center;
+  }
+
+  .not-found p {
+    margin-inline: auto;
+    text-wrap: balance;
+  }
+
+  .not-found-links {
+    display: grid;
+    gap: var(--space-sm);
+    margin: var(--space-lg) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .not-found-links a {
+    font-weight: 500;
+    text-decoration-color: transparent;
+  }
+
+  .not-found-links a:hover {
+    text-decoration-color: currentColor;
+  }
+</style>

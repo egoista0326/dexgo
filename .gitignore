@@ -1,0 +1,12 @@
+.DS_Store
+node_modules/
+/dist/
+.astro/
+.env
+.env.*
+__pycache__/
+*.pyc
+# Guards: the demo's smooth-skin hull code and the licensed MANO skin data are never published (owner 2026-11-22).
+public/demo/app/hull_surface.js
+**/hull_surface.js
+**/mano_local/
