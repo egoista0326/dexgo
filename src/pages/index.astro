@@ -125,7 +125,7 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
         <KeyHeading id="problem-heading" level={2} text={problem.heading} />
       </header>
       <div class="dx-text" data-reveal>
-        <p class="dx-prose" set:html={texInline(problem.text)} />
+        <p class="dx-prose dx-prose-lead" set:html={texInline(problem.text)} />
       </div>
       <div class="dx-media" data-reveal="media">
         <ProblemFigure {...problem.figure} />
@@ -138,7 +138,7 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
         <KeyHeading id="method-overview" level={2} text={method.heading} />
       </header>
       <div class="dx-text" data-reveal>
-        <p class="dx-prose" set:html={texInline(method.intro)} />
+        <p class="dx-prose dx-prose-lead" set:html={texInline(method.intro)} />
       </div>
       <div class="dx-media" data-reveal="media">
         <MethodFigure {...figure} />

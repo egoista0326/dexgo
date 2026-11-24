@@ -440,7 +440,7 @@ export const dexgoPage = {
       heading: 'Goals in a row: *long-horizon* manipulation',
       clip: clip('chain_ticker', 'A simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
       clipPhone: clip('chain_ticker_phone', 'A simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
-      caption: 'Reaching different goals one after another, a single policy performs long-horizon manipulation. The ticker names each goal\u2019s task.'
+      caption: 'Reaching different goals one after another, a single policy performs long-horizon manipulation.'
     },
     objects: {
       heading: '*Unseen* everyday objects with different hands',

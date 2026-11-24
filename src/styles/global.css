@@ -1924,6 +1924,13 @@ html:has(> body.page-dexgo .dx-localnav) {
   font: 400 15px/1.45 var(--dx-sans);
 }
 
+/* The short paragraphs under a centred heading (Problem definition, Method; owner 2026-11-24): centred, their lines
+   balanced, instead of justified like the abstract. */
+.page-dexgo .dx-prose.dx-prose-lead {
+  text-align: center;
+  text-wrap: balance;
+}
+
 /* The Live demo's one line under its heading: what to try, in the accent colour, centred under the heading. */
 .page-dexgo .dx-prose.dx-demo-cta {
   color: var(--dx-accent);
