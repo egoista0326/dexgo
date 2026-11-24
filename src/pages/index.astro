@@ -107,6 +107,7 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
     <div class="dx-media dx-hero">
       <ClipVideo clip={page.teaser} class="dx-hero-wide" />
       <ClipVideo clip={page.teaserPhone} class="dx-hero-phone" />
+      <MediaNote caption={page.teaserCaption} />
     </div>
 
     <section class="dx-section dx-abstract" aria-labelledby="abstract-heading">
@@ -185,6 +186,9 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
         <p class="dx-eyebrow">{demo.eyebrow}</p>
         <KeyHeading id="results-demo" level={2} text={demo.heading} />
       </header>
+      <div class="dx-text" data-reveal>
+        <p class="dx-prose" set:html={texInline(demo.intro)} />
+      </div>
       <div class="dx-media" data-reveal="media">
         <LazyDemo
           src={demo.src}
