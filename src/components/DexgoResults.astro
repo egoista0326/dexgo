@@ -5,8 +5,9 @@ import MediaNote from './MediaNote.astro';
 import ObjectCarousel from './ObjectCarousel.astro';
 import { dexgoPage } from '../data/dexgo';
 
-// The Results part (src/pages/index.astro wraps it in <section id="results">): its head with the pairs, then two sections.
-const { targets, objects, sizes } = dexgoPage.results;
+// The Results part (src/pages/index.astro wraps it in <section id="results">): its head with the pairs, then three
+// sections (the long-horizon chain, unseen objects, object sizes).
+const { targets, chain, objects, sizes } = dexgoPage.results;
 // Pairs: one common scale for both files (columns in proportion to their frame widths).
 const pairColumns = `--pair-columns: ${targets.pair.map((clip) => `minmax(0, ${clip.width}fr)`).join(' ')}`;
 // Sizes: one common scale k for the three files (see .dx-sizes in global.css). In source px: --span-sum, the
@@ -44,6 +45,16 @@ const sizeRow = [
     <MediaNote caption={targets.caption} />
   </div>
 </div>
+
+<section class="dx-screen" aria-labelledby="results-chain">
+  <KeyHeading id="results-chain" text={chain.heading} />
+  <div class="dx-media">
+    {/* The wide cut with its ticker, and below 640 px the phone cut (global.css shows one). */}
+    <ClipVideo clip={chain.clip} class="dx-cut-wide" />
+    <ClipVideo clip={chain.clipPhone} class="dx-cut-phone" />
+    <MediaNote caption={chain.caption} />
+  </div>
+</section>
 
 <section class="dx-screen" aria-labelledby="results-objects">
   <KeyHeading id="results-objects" text={objects.heading} />

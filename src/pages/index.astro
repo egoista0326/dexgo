@@ -92,8 +92,8 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
       </p>
       <p class="dx-affiliation">{page.affiliation}</p>
       {hasEqual ? <p class="dx-author-note" aria-hidden="true">*{page.equalNote}</p> : null}
-      {/* One pill style: the filled "Interactive demo" pill jumps to the Live demo part (and focuses its start button,
-          script below); Paper and Code follow as outlined "soon" pills. */}
+      {/* One pill style: the filled "Interactive demo" pill jumps to the Live demo part (where the demo starts on its
+          own; script below); Paper and Code follow as outlined "soon" pills. */}
       <LinkChips links={links} label="Project links" class="dx-links">
         <a slot="lead" class="dx-pill dx-pill-primary" href={page.demoLink.href} data-demo-jump>
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10.5-6.5z" /></svg>
@@ -187,7 +187,6 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
         <KeyHeading id="results-demo" level={2} text={demo.heading} />
       </header>
       <div class="dx-text" data-reveal>
-        <p class="dx-prose" set:html={texInline(demo.intro)} />
         <p class="dx-prose dx-demo-cta" set:html={texInline(demo.cta)} />
       </div>
       <div class="dx-media" data-reveal="media">
@@ -198,8 +197,6 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
           loadingLabel={demo.loadingLabel}
           newTabLabel={demo.newTabLabel}
           caption={demo.caption}
-          preview={demo.preview}
-          previewPhone={demo.previewPhone}
         />
       </div>
     </section>
@@ -226,10 +223,10 @@ const shareTitle = `${page.title}: ${page.subtitle}`;
 <script>
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // "Interactive demo": scroll to the Live demo part (instantly under reduced motion) and put focus on its start
-  // button without a second scroll, so Enter starts the demo. The band's top meets the nav where the whole stage
-  // then fits on the screen; on shorter windows the page scrolls further, until the stage ends 16 px above the
-  // window's bottom, so the focused start button (at the stage's bottom) is always in view.
+  // "Interactive demo": scroll to the Live demo part (instantly under reduced motion), where the demo starts on its own;
+  // where it waits for its start button instead (reduced motion, data saver, paused motion), focus goes to that button
+  // without a second scroll, so Enter starts the demo. The band's top meets the nav where the whole stage then fits on
+  // the screen; on shorter windows the page scrolls further, until the stage ends 16 px above the window's bottom.
   for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-demo-jump]')) {
     link.addEventListener('click', (event) => {
       const target = document.querySelector<HTMLElement>(link.hash);

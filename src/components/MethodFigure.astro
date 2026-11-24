@@ -3,11 +3,9 @@
 // regions link to the subsections that explain them (which follow the figure directly, in the same order). The
 // affordance (owner 2026-11-24, replacing the row of section links): a hint line above the figure and, at rest, a
 // faint teal tint and ring on each region with a small down-arrow badge on its top-right corner; hovering a region
-// strengthens both. The
-// regions are pointer targets only: the keyboard reaches the subsections by reading on. Below 864 px (the figure
-// under 800 px, labels under the readable size) an "Open the figure" link under the figure opens the figure page
-// (/dexgo/figure/), where it is 1000 px wide in a horizontally scrolling box. Below 720 px the figure is a thumbnail:
-// the regions, their badges and the hint are hidden, and the whole image opens the figure page too.
+// strengthens both. The regions are pointer targets only: the keyboard reaches the subsections by reading on. Phones
+// work the same way (owner 2026-11-24: the figure reads well enough at the column width); the separate figure page
+// (/dexgo/figure/) stays, no longer linked from here.
 interface Hotspot {
   target: string;
   label: string;
@@ -23,14 +21,11 @@ interface Props {
   hotspots: Hotspot[];
   /** Accessible name of the figure. */
   label: string;
-  /** The line above the figure that says the regions are links (from 720 px). */
+  /** The line above the figure that says the regions are links . */
   hint: string;
-  /** Text of the link to the full-size figure (shown below 864 px), and that page's path. */
-  openLabel: string;
-  openHref: string;
 }
 
-const { src, width, height, alt, hotspots, label, hint, openLabel, openHref } = Astro.props;
+const { src, width, height, alt, hotspots, label, hint } = Astro.props;
 const pct = (value: number, total: number) => `${((value / total) * 100).toFixed(3)}%`;
 ---
 
@@ -41,7 +36,6 @@ const pct = (value: number, total: number) => `${((value / total) * 100).toFixed
   </p>
   <div class="dx-method-stage" style={`aspect-ratio: ${width} / ${height}`}>
     <img src={src} alt={alt} width="800" height={Math.round((800 * height) / width)} decoding="async" loading="lazy" />
-    <a class="dx-method-zoom" href={openHref} tabindex="-1" aria-hidden="true"></a>
     {
       hotspots.map((spot) => (
         <a
@@ -59,9 +53,6 @@ const pct = (value: number, total: number) => `${((value / total) * 100).toFixed
         </a>
       ))
     }
-  </div>
-  <div class="dx-spot-links">
-    <a class="dx-method-open" href={openHref}>{openLabel}</a>
   </div>
 </figure>
 

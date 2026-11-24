@@ -44,13 +44,12 @@ const chooseHand = async (frame, hand) => {
   await frame.waitForFunction((h) => document.body.dataset.hand === h, hand, { timeout: 180000 });
 };
 
-test('in the page: Start runs the demo; MANO and Sharpa each complete goals; nothing fails to load', { timeout: 900000 }, async () => {
+test('in the page: the demo starts on its own; MANO and Sharpa each complete goals; nothing fails to load', { timeout: 900000 }, async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   const problems = watch(page);
   try {
     await page.goto(`${base}/dexgo/#live-demo`, { waitUntil: 'load' });
-    await page.locator('[data-demo-start]').click();
     const iframe = await page.waitForSelector('#live-demo iframe', { timeout: 30000 });
     assert.equal(new URL(await iframe.getAttribute('src'), base).pathname, '/dexgo/demo/index.html');
     const frame = await iframe.contentFrame();

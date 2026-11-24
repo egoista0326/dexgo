@@ -260,17 +260,18 @@ test('/dexgo/ structure: sticky nav with the three parts and one pause button; M
   const parts = [...markup.matchAll(/<section id="(method|live-demo|results)" class="dx-part[^"]*"[^>]*>\s*<header class="dx-part-head"[^>]*>\s*<p class="dx-eyebrow">([^<]+)<\/p>\s*<h2\b/g)].map((m) => [m[1], m[2]]);
   assert.deepEqual(parts, [['method', 'Method'], ['live-demo', 'Live demo'], ['results', 'Results']]);
   const demo = /<section id="live-demo"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? '';
-  assert.deepEqual(tagsNamed(demo, 'source').map((tag) => attributeOf(tag, 'src')), ['/dexgo/assets/clips/chain_ticker.mp4', '/dexgo/assets/clips/chain_ticker_phone.mp4']);
+  // The demo starts on its own; the recorded chain is a Results example, not in the stage.
+  assert.deepEqual(tagsNamed(demo, 'source'), []);
   assert.match(demo, /data-demo-start[^>]*>[\s\S]*?Start the live demo/);
+  const chain = /<section class="dx-screen" aria-labelledby="results-chain">[\s\S]*?<\/section>/.exec(markup)?.[0] ?? '';
+  assert.deepEqual(tagsNamed(chain, 'source').map((tag) => attributeOf(tag, 'src')), ['/dexgo/assets/clips/chain_ticker.mp4', '/dexgo/assets/clips/chain_ticker_phone.mp4']);
   assert.match(markup, /<a slot="lead"|class="dx-pill dx-pill-primary" href="#live-demo" data-demo-jump/);
 });
 
 
-test('/dexgo/figure/: the overview figure at 1000 px on a standalone page, linked from the /dexgo/ figure on phones', () => {
+test('/dexgo/figure/: the overview figure at 1000 px on a standalone page (phones use the figure in place)', () => {
   const dexgo = markupOf(join(dist, 'index.html'));
-  const opens = [...tagsNamed(dexgo, 'a').filter((tag) => /class="[^"]*\bdx-method-(open|zoom)\b/.test(tag))];
-  assert.equal(opens.length, 2, 'the phone link and the image link of the method figure');
-  for (const tag of opens) assert.equal(attributeOf(tag, 'href'), '/dexgo/figure/');
+  assert.deepEqual(tagsNamed(dexgo, 'a').filter((tag) => attributeOf(tag, 'href') === '/dexgo/figure/'), [], 'no link to the figure page');
 
   const file = join(dist, 'figure', 'index.html');
   assert.ok(existsSync(file), 'dist/figure/index.html exists');

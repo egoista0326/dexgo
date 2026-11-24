@@ -67,7 +67,7 @@ test('the nav pause button pauses every clip and names what it will do; the nav 
   });
 });
 
-test('"Interactive demo" lands on the Live demo part under the nav with focus on Start; the nav marks the part', async () => {
+test('"Interactive demo" lands on the Live demo part under the nav and the demo starts on its own; the nav marks the part', async () => {
   await onPage(desktop, async (page) => {
     await page.click('[data-demo-jump]');
     await page.waitForFunction(() => Math.abs(document.querySelector('#live-demo').getBoundingClientRect().top - 52) < 40, null, { timeout: 5000 });
@@ -77,21 +77,22 @@ test('"Interactive demo" lands on the Live demo part under the nav with focus on
     assert.ok(Math.abs((await box(page, '#live-demo')).top - navBottom) <= 1, 'band top at the nav');
     const head = await box(page, '#live-demo .dx-eyebrow');
     assert.ok(head.top >= navBottom && head.top < 260, `eyebrow at ${head.top}`);
-    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute('data-demo-start')), true);
     assert.equal(await page.evaluate(() => document.querySelector('[data-nav="live-demo"]').getAttribute('aria-current')), 'true');
-    // The recorded chain plays in the stage before Start.
-    await page.waitForFunction(() => document.querySelector('.dx-demo-preview-wide video').currentTime > 0.3, null, { timeout: 15000 });
+    // Started on its own: the iframe is in the stage, the pill is hidden, and focus has not moved into the stage.
+    await page.waitForSelector('#live-demo iframe', { timeout: 5000 });
+    assert.equal(await page.evaluate(() => document.querySelector('[data-demo-start]').hidden), true);
+    assert.equal(await page.evaluate(() => document.activeElement?.closest('.dx-demo-stage') ?? null), null);
   });
 });
 
-test('short laptop window: "Interactive demo" shows the whole stage and its focused Start button', async () => {
+test('short laptop window: "Interactive demo" shows the whole stage, where the demo has started', async () => {
   await onPage({ viewport: { width: 1280, height: 720 } }, async (page) => {
     await page.click('[data-demo-jump]');
     await page.waitForTimeout(1500);
     const navBottom = (await box(page, '.dx-localnav')).bottom;
     const stage = await box(page, '.dx-demo-stage');
     assert.ok(stage.top >= navBottom && stage.bottom <= 720, `stage ${stage.top}-${stage.bottom}`);
-    assert.equal(await page.evaluate(() => document.activeElement?.hasAttribute('data-demo-start')), true);
+    assert.ok(await page.$('#live-demo iframe'), 'the demo started on its own');
   });
 });
 

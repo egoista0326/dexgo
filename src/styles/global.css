@@ -1064,6 +1064,21 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
   transform: translateY(2px);
 }
 
+/* Phones: the figure is drawn at the column width, so the badges shrink with it. */
+@media (max-width: 639px) {
+  .dx-hotspot-badge {
+    top: -7px;
+    right: -7px;
+    width: 15px;
+    height: 15px;
+    box-shadow: 0 0 0 1.5px #fff;
+  }
+  .dx-hotspot-badge svg {
+    width: 9px;
+    height: 9px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dx-hotspot:hover .dx-hotspot-badge {
     transform: none;
@@ -1193,40 +1208,6 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
   .dx-figure-frame {
     align-self: center;
   }
-}
-
-/* Below 864 px (the figure drawn under 800 px) a text link under the figure opens the full-size figure; below 720 px
-   the whole image does too. From 864 px the line is not there. */
-.dx-method-zoom,
-.dx-spot-links {
-  display: none;
-}
-
-@media (max-width: 863px) {
-  .dx-spot-links {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-    font: 600 14px/1.45 var(--dx-sans);
-  }
-}
-
-/* The same look as the page's other text controls (.dx-control): teal 600, the underline only on hover. */
-.dx-spot-links a {
-  padding: 4px 0;
-  color: var(--dx-ink);
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 4px;
-  transition:
-    color 150ms ease-out,
-    text-decoration-color 150ms ease-out;
-}
-
-.dx-spot-links a:hover {
-  color: var(--dx-ink-hover);
-  text-decoration-color: currentColor;
 }
 
 /* Prerequisite graph: the animation cropped to its graph, nodes as buttons, the player beside it. */
@@ -1606,25 +1587,6 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
     font-size: 22px;
   }
 
-  /* Phones: the figure is a thumbnail that opens the full-size figure; "Open the figure" is the one control, on its
-     own 32 px line. No regions or badges (the hint hides with them, below). */
-  .dx-hotspot {
-    display: none;
-  }
-
-  .dx-method-zoom {
-    display: block;
-    position: absolute;
-    inset: 0;
-  }
-
-  .dx-spot-links .dx-method-open {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    min-height: 32px;
-  }
 }
 
 @media (max-width: 639px) {
@@ -1866,18 +1828,21 @@ html:has(> body.page-dexgo .dx-localnav) {
   outline-offset: 2px;
 }
 
-/* Teaser hero: the 2:1 cut, the 4:3 phone cut below 640 px. */
+/* Teaser hero (and the Results chain, .dx-cut-*): the wide cut, the phone cut below 640 px. */
 .page-dexgo .dx-hero {
   margin-top: 40px;
 }
-.dx-hero-phone {
+.dx-hero-phone,
+.dx-cut-phone {
   display: none;
 }
 @media (max-width: 639px) {
-  .dx-hero-wide {
+  .dx-hero-wide,
+  .dx-cut-wide {
     display: none;
   }
-  .dx-hero-phone {
+  .dx-hero-phone,
+  .dx-cut-phone {
     display: block;
   }
 }
@@ -1959,10 +1924,10 @@ html:has(> body.page-dexgo .dx-localnav) {
   font: 400 15px/1.45 var(--dx-sans);
 }
 
-/* The Live demo intro's second line: the call to start the demo, in the accent colour. */
+/* The Live demo's one line under its heading: what to try, in the accent colour, centred under the heading. */
 .page-dexgo .dx-prose.dx-demo-cta {
-  margin-top: 8px;
   color: var(--dx-accent);
+  text-align: center;
   font-weight: 600;
 }
 
@@ -2005,8 +1970,8 @@ html:has(> body.page-dexgo .dx-localnav) {
   transform: none;
 }
 
-/* Demo stage: a white card on the band; the recorded chain contained in the demo's 800 x 474 frame, the start pill
-   centred 28 px above its bottom. */
+/* Demo stage: a white card on the band at the demo's 800 x 474 frame; the loading line (or, where the demo does not
+   start on its own, the start pill) in its middle. */
 .dx-demo-stage {
   position: relative;
   aspect-ratio: 800 / 474;
@@ -2014,26 +1979,10 @@ html:has(> body.page-dexgo .dx-localnav) {
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 28px rgb(0 0 0 / 0.06);
-  transition: height 300ms var(--dx-ease);
 }
-.dx-demo-preview {
-  position: absolute;
-  inset: 0;
-  top: 24px; /* the recording's baked ticker 24 px lower, clear of the card's top edge (side by side only) */
+/* Before a start the whole card starts the demo (LazyDemo.astro). */
+.dx-demo:not(.is-started) .dx-demo-stage {
   cursor: pointer;
-}
-.dx-demo-preview .dx-clip {
-  height: 100%;
-  aspect-ratio: auto;
-}
-.dx-demo-preview video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #ffffff;
-}
-.dx-demo-preview-phone {
-  display: none;
 }
 .dx-demo-stage iframe {
   position: absolute;
@@ -2054,10 +2003,10 @@ html:has(> body.page-dexgo .dx-localnav) {
 .dx-demo-start,
 .dx-demo-loading {
   position: absolute;
-  bottom: 28px;
+  top: 50%;
   left: 50%;
   z-index: 1;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   white-space: nowrap;
 }
 .dx-demo-start.dx-pill {
@@ -2111,9 +2060,6 @@ html:has(> body.page-dexgo .dx-localnav) {
 .dx-demo.is-failed .dx-demo-progress {
   display: none;
 }
-.dx-demo.is-failed .dx-demo-preview {
-  opacity: 0.5;
-}
 /* After a failed download: one outlined pill under the sentence (the WebGL 2 sentence has none). */
 .dx-demo-retry.dx-pill {
   width: auto;
@@ -2135,8 +2081,7 @@ html:has(> body.page-dexgo .dx-localnav) {
   font-size: 15px;
   text-align: right;
 }
-/* Stacked media (must match LazyDemo.astro TALL_MEDIA): the phone cut of the recording with a 96 px band for the
-   pill; on Start the stage becomes the demo's 9:16 frame. */
+/* Stacked media (must match LazyDemo.astro TALL_MEDIA): the stage is the demo's 9:16 frame from the first paint. */
 @media (max-width: 843px), (max-width: 863px) and (orientation: portrait) {
   /* the stage's width, shared with the "Open in a new tab" line under it (its right edge = the stage's) */
   .dx-demo {
@@ -2149,40 +2094,8 @@ html:has(> body.page-dexgo .dx-localnav) {
   .dx-demo-stage {
     width: var(--dx-stage-w);
     margin-inline: calc((100% - var(--dx-stage-w)) / 2);
-    aspect-ratio: auto;
-    padding-bottom: 96px;
-    border-radius: 14px;
-  }
-  .dx-demo-preview {
-    position: relative;
-    inset: auto;
-    aspect-ratio: var(--preview-phone-ratio);
-  }
-  .dx-demo.is-started .dx-demo-stage {
     aspect-ratio: 9 / 16;
-    padding-bottom: 0;
-  }
-  .dx-demo.is-started .dx-demo-preview {
-    position: absolute;
-    inset: 0;
-  }
-  .dx-demo.is-started .dx-demo-stage.is-growing {
-    aspect-ratio: auto;
-  }
-  .dx-demo-preview-wide {
-    display: none;
-  }
-  .dx-demo-preview-phone {
-    display: block;
-  }
-  .dx-demo-start,
-  .dx-demo-loading {
-    bottom: 22px;
-  }
-  .dx-demo.is-started .dx-demo-loading {
-    bottom: auto;
-    top: 50%;
-    transform: translate(-50%, -50%);
+    border-radius: 14px;
   }
 }
 
@@ -2244,13 +2157,6 @@ html:has(> body.page-dexgo .dx-localnav) {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
-}
-/* The Method figure's hint: from 720 px only, where the regions are links (below, the thumbnail opens the figure).
-   Scoped to .page-dexgo so it outranks the rule above even where the build merges this block into an earlier one. */
-@media (max-width: 719px) {
-  .page-dexgo .dx-method-hint {
-    display: none;
-  }
 }
 .dx-method-hint svg {
   stroke-width: 1.8;
@@ -2616,7 +2522,6 @@ html:has(> body.page-dexgo .dx-localnav) {
 }
 @media (prefers-reduced-motion: reduce) {
   [data-reveal],
-  .dx-demo-stage,
   .dx-unlock-endframe {
     transition: none;
   }

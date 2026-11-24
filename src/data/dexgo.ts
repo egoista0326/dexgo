@@ -293,17 +293,13 @@ export const dexgoPage = {
       // In the order of the subsections they jump to (graph, kernel, encoding).
       hotspots: [
         { target: 'prerequisite-graph', label: 'Prerequisite graph', rect: [486.8, 1.5, 226.4, 138] },
-        { target: 'annealed-kernel-reward', label: 'Annealed kernel reward', rect: [215, 84, 163, 26] },
+        { target: 'annealed-kernel-reward', label: 'Task-wise annealed kernel reward', rect: [215, 84, 163, 26] },
         { target: 'observation-encoding', label: 'Nonlinear observation encoding', rect: [112, 17.5, 92, 77] }
       ] as { target: string; label: string; rect: [number, number, number, number] }[],
       /** Accessible name of the figure (the image's alt describes it). */
       label: 'Overview of DexGO',
       /** Says the marked regions jump to the subsections below (owner 2026-11-24, in place of the link row). */
-      hint: 'Click a marked part to jump to its section',
-      /** Link to the figure page, shown below 864 px where the figure is drawn under 800 px (a thumbnail below 720 px):
-          src/pages/figure.astro. */
-      openLabel: 'Open the figure',
-      openHref: url('figure/'),
+      hint: 'Select a marked part to jump to its section',
       /** The figure page (titled `label`): the figure at this width in a horizontally scrolling box, so its labels read
           on a phone. */
       page: {
@@ -365,8 +361,8 @@ export const dexgoPage = {
     },
     kernel: {
       id: 'annealed-kernel-reward',
-      heading: 'Annealed kernel reward',
-      subheading: 'Narrows as the policy improves, shifting from *long-distance guidance* to *short-distance precision*',
+      heading: 'Task-wise annealed kernel reward',
+      subheading: 'Narrows individually for each task as the policy improves, shifting from *long-distance guidance* to *short-distance precision*',
       // The curve-only cut, starting once the wide kernel is drawn: its first frame is the poster, so playback starts
       // without a jump.
       animation: clip(
@@ -404,29 +400,22 @@ export const dexgoPage = {
     }
   },
   results: {
-    /** Long-horizon manipulation, shown by the live demo: the policy chains goal after goal in the browser. */
+    /** The live demo (owner 2026-11-24): it runs on its own once the reader scrolls near it (LazyDemo.astro), so the
+        heading invites the reader to try it; the recorded long-horizon chain is a Results example now (`chain`). */
     demo: {
       // A hyphenated word never splits at its hyphen (KeyHeading keeps it on one line).
       eyebrow: 'Live demo',
-      heading: '*Long-horizon* manipulation: watch it, or run it live',
-      /** Says what the stage holds before Start (owner 2026-11-24): the recorded chain, then, on its own emphasized
-          line, the live demo and its three goal modes (random chain, selected task, manual goal). */
-      intro: 'Reaching different goals one after another, a single policy performs long-horizon manipulation.',
-      cta: 'Start the live demo to run it with random, selected, or manually specified goals!',
+      heading: 'Play it *live* in your browser',
+      /** The one line under the heading, emphasized (owner 2026-11-24): the demo's three goal modes (random chain,
+          selected task, manual goal). */
+      cta: 'Try random, selected, or manually specified goals!',
       // No caption under the demo (owner 2026-11-22); the line keeps only "Open in a new tab".
       caption: '',
       src: url('demo/index.html'),
       title: 'DexGO interactive demo',
-      /** The preview before Start (owner 2026-11-23): the project video's long-horizon showcase, a muted loop of the
-          recorded chain with its task ticker (all eight goals R, TL, GL, RL, TGL, RTL, RGL, RTGL on the flashlight;
-          true BT.709 files of the talk's web/clips), so a reader who never starts the demo still sees a long-horizon
-          chain. `previewPhone` is its phone cut, used where the stage is stacked (LazyDemo.astro). Both posters are
-          the frame at 9.0 s (GL current, ticker TL, GL, RL), so the stage looks alive before playback. No label says
-          it is recorded (owner): the start button names the switch to the live simulation. */
-      preview: clip('chain_ticker', 'Recorded long-horizon chain: a simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
-      previewPhone: clip('chain_ticker_phone', 'Recorded long-horizon chain: a simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
+      /** The pill shown only where the demo does not start on its own (reduced motion, data saver, paused motion). */
       startLabel: 'Start the live demo',
-      loadingLabel: 'Loading the demo…',
+      loadingLabel: 'Loading the live demo…',
       newTabLabel: 'Open in a new tab'
     },
     targets: {
@@ -442,6 +431,16 @@ export const dexgoPage = {
       // No-break spaces keep each row's label with its value ("Top: L", "Bottom: GL"). Copy v2 (owner 2026-11-23).
       caption:
         'Both rows start from the same initial grasp (left) and move the object to the same world pose; only the target grasp differs. Top: L. Bottom: GL (screwdriver), RTL (hammer).'
+    },
+    /** Long-horizon example (owner 2026-11-24, moved here from the live demo's stage): the project video's
+        long-horizon showcase, the recorded chain with its task ticker (all eight goals R, TL, GL, RL, TGL, RTL, RGL,
+        RTGL on the flashlight; true BT.709 files of the talk's web/clips), and below 640 px its phone cut. Both posters
+        are the frame at 9.0 s (GL current, ticker TL, GL, RL). */
+    chain: {
+      heading: 'Goals in a row: *long-horizon* manipulation',
+      clip: clip('chain_ticker', 'A simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
+      clipPhone: clip('chain_ticker_phone', 'A simulated hand reaches eight goals in a row on a flashlight, each a different task, named on a ticker above.'),
+      caption: 'Reaching different goals one after another, a single policy performs long-horizon manipulation. The ticker names each goal\u2019s task.'
     },
     objects: {
       heading: '*Unseen* everyday objects with different hands',
