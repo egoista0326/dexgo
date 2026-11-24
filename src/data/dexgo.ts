@@ -121,8 +121,8 @@ const sizeClip = (name: string, label: string, place: SizePlace): Clip & SizePla
   ...place
 });
 
-/** Short capability words for combination tasks, as on the video's ticker; single tasks use the full names of the
-    method intro (`capabilityNames`). */
+/** Short capability words for combination tasks, as on the video's ticker; single tasks use the full names
+    (`capabilityNames`). */
 const capabilityWords: Record<string, string> = {
   R: 'reorientation',
   T: 'translation',
@@ -130,7 +130,7 @@ const capabilityWords: Record<string, string> = {
   L: 'relocation'
 };
 
-/** Full capability names, as in the method intro, under the graph's nodes and in the live demo. */
+/** Full capability names, under the graph's nodes and in the live demo. */
 const capabilityNames: Record<string, string> = {
   R: 'in-hand reorientation',
   T: 'in-hand translation',
@@ -275,8 +275,8 @@ export const dexgoPage = {
   method: {
     eyebrow: 'Method',
     intro:
-      'DexGO trains a single policy with reinforcement learning. Its tasks group goals by the capabilities they require: in-hand reorientation (R), in-hand translation (T), grasp type change (G) and object relocation (L).',
-    heading: 'Complex motions *combine* basic capabilities',
+      'A prerequisite graph lets a single policy learn harder tasks through simpler ones. A task-wise annealed kernel reward and a nonlinear observation encoding let it reach the goal precisely, even when the goal is far away.',
+    heading: 'Build on *simpler tasks* and reach every goal *precisely*',
     figure: {
       /** Web cut of the paper's figure (method_overview.svg): every label about 11 viewBox units (12 px at the 800 px
           column), the observation boxes and capability chips re-spaced to fit them, the state legend and the
@@ -313,10 +313,10 @@ export const dexgoPage = {
       id: 'prerequisite-graph',
       // The component name is the headline; the key phrase is the muted line under it (owner 2026-11-23).
       heading: 'Prerequisite graph',
-      subheading: 'Simple tasks *unlock* their combinations',
+      subheading: 'A task is *unlocked* only when its *prerequisites* are learned',
       // The video's unlock animation cut to its graph (frame x 0-1100 of the 1790 px frame) from 6.6 s, where the
       // graph has settled in its place; poster = first frame, endPoster = last frame (every task learned).
-      animation: { ...clip('method_graph', 'Animation of the prerequisite graph: starting from the four single-capability tasks, each task is unlocked once its prerequisites are learned, up to RTGL.'), endPoster: url(`${clipDir}/method_graph_end.jpg`) },
+      animation: { ...clip('method_graph', 'Animation of the prerequisite graph: starting from the four single-capability tasks, each task is unlocked only when its prerequisites are learned, up to RTGL.'), endPoster: url(`${clipDir}/method_graph_end.jpg`) },
       hint: 'Select a task to watch an example',
       /** No line under the graph (owner 2026-11-22: the axes legend and the clip-speed sentence were removed). */
       legend: '',
