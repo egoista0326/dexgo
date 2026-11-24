@@ -1977,11 +1977,13 @@ html:has(> body.page-dexgo .dx-localnav) {
   transform: none;
 }
 
-/* Demo stage: a white card on the band at the demo's 800 x 474 frame; the loading line (or, where the demo does not
-   start on its own, the start pill) in its middle. */
+/* Demo stage: a white card on the band at the demo's 800 x 528 frame (owner 2026-11-24: 474 before the demo's
+   labelled Hand / Object / Goal type controls and Manual goal sections; 528 keeps the Manual goal panel whole with
+   a Wrap target down to a 780 px wide frame); the loading line (or, where the demo does not start on its own, the
+   start pill) in its middle. */
 .dx-demo-stage {
   position: relative;
-  aspect-ratio: 800 / 474;
+  aspect-ratio: 800 / 528;
   overflow: hidden;
   border-radius: 18px;
   background: #ffffff;

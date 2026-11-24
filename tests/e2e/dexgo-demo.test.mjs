@@ -37,14 +37,13 @@ const reachGoals = async (frame, hand, count) => {
   const from = await goals(frame);
   await frame.waitForFunction(([n]) => Number(document.body.dataset.goals ?? 0) >= n, [from + count], { timeout: 240000, polling: 500 });
 };
-/** Switches the hand in the demo's setup menu. */
+/** Switches the hand with the demo's Hand control (always shown, no menu to open). */
 const chooseHand = async (frame, hand) => {
-  await frame.click('#setup');
-  await frame.click(`[data-hand="${hand}"]`);
+  await frame.click(`#hands [data-hand="${hand}"]`);
   await frame.waitForFunction((h) => document.body.dataset.hand === h, hand, { timeout: 180000 });
 };
 
-test('in the page: the demo starts on its own; MANO and Sharpa each complete goals; nothing fails to load', { timeout: 900000 }, async () => {
+test('in the page: the demo starts on its own with Sharpa; Sharpa and MANO each complete goals; nothing fails to load', { timeout: 900000 }, async () => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await context.newPage();
   const problems = watch(page);
@@ -53,14 +52,14 @@ test('in the page: the demo starts on its own; MANO and Sharpa each complete goa
     const iframe = await page.waitForSelector('#live-demo iframe', { timeout: 30000 });
     assert.equal(new URL(await iframe.getAttribute('src'), base).pathname, '/dexgo/demo/index.html');
     const frame = await iframe.contentFrame();
-    await reachGoals(frame, 'mano', 2);
-    await chooseHand(frame, 'sharpa');
-    await reachGoals(frame, 'sharpa', 1);
+    await reachGoals(frame, 'sharpa', 2);
+    await chooseHand(frame, 'mano');
+    await reachGoals(frame, 'mano', 1);
     // The demo's font is the page's file under the base (one download, shared with the page).
     const fonts = await frame.evaluate(() => performance.getEntriesByType('resource').map((e) => new URL(e.name).pathname).filter((p) => p.endsWith('.woff2')));
     assert.ok(fonts.every((p) => p === '/dexgo/fonts/source-sans-3/source-sans-3-latin-var.woff2'), fonts.join(', '));
     // "Open in a new tab" names the demo's own address, with the hand now shown.
-    assert.equal(await page.getAttribute('[data-demo-newtab]', 'href'), '/dexgo/demo/?hand=sharpa');
+    assert.equal(await page.getAttribute('[data-demo-newtab]', 'href'), '/dexgo/demo/?hand=mano');
     assert.deepEqual(problems, []);
   } finally {
     await context.close();
@@ -73,7 +72,7 @@ test('alone at /dexgo/demo/: the demo starts and completes goals; nothing fails 
   const problems = watch(page);
   try {
     await page.goto(`${base}/dexgo/demo/`, { waitUntil: 'load' });
-    await reachGoals(page.mainFrame(), 'mano', 1);
+    await reachGoals(page.mainFrame(), 'sharpa', 1);
     const icons = await page.evaluate(() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map((l) => new URL(l.href).pathname));
     assert.deepEqual(icons, ['/dexgo/favicon.ico', '/dexgo/favicon.svg', '/dexgo/apple-touch-icon.png']);
     assert.deepEqual(problems, []);

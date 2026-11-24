@@ -67,8 +67,8 @@ const OPENING = params.has('opening') ? Number(params.get('opening')) : undefine
 const SLOW_STEP = Number(params.get('slowstep')) || 0; // test only: extra busy ms per control step in the worker
 const $ = (id) => document.getElementById(id);
 const ui = {
-  play: $('play'), playLabel: $('play-label'), reset: $('reset'), setup: $('setup'), pop: $('setup-pop'),
-  setupHand: $('setup-hand'), setupObject: $('setup-object'), view: $('view'), axes: $('axes'), loading: $('loading'),
+  play: $('play'), playLabel: $('play-label'), reset: $('reset'),
+  view: $('view'), axes: $('axes'), loading: $('loading'),
   colliders: $('colliders'), collidersToggle: $('colliders-toggle'), objects: $('objects'), hands: $('hands'),
   modes: [...document.querySelectorAll('[data-mode]')], code: $('task-code'), words: $('task-words'),
   goals: $('goals'), note: $('note'), graph: $('graph'), marker: $('marker-status'), announce: $('announce'),
@@ -90,7 +90,7 @@ function showMode(mode) {
 }
 /** The description as a callout of the pressed Mode segment: centred under it, clamped to the view column
  *  (--desc-x from the column's left edge), its notch under the segment's centre (--tip, from its own left edge);
- *  kept on resize with the thumbs (placeThumb) and the setup menu. */
+ *  kept on resize with the thumbs (placeThumb) and the Hand and Object tracks before it. */
 function placeModeDesc() {
   const d = ui.modeDesc;
   const on = ui.modes[0].parentElement.querySelector('.toggle[aria-pressed="true"]');
@@ -1572,62 +1572,22 @@ function placeThumb(seg) {
   if (seg === ui.modes[0].parentElement) placeModeDesc();
 }
 const segs = [ui.hands, ui.objects, ui.modes[0].parentElement];
-const thumbs = new ResizeObserver((entries) => { for (const e of entries) placeThumb(e.target); });
+// a track's width changes the controls after it (the Hand labels "Sharpa" / "MANO", a font swap): every thumb is
+// placed again and the Goal type callout follows its control
+const thumbs = new ResizeObserver((entries) => {
+  for (const e of entries) placeThumb(e.target);
+  placeModeDesc();
+});
 for (const seg of segs) thumbs.observe(seg);
-// the Mode control moves when the setup menu's label changes width ("MANO" / "Sharpa"): keep the callout on it
-new ResizeObserver(() => placeModeDesc()).observe(document.querySelector('.setup'));
 
-/** The setup menu button: it names the pressed hand and object ("MANO · Round", also while a switch loads) and
- *  answers only while no model loads (aria-disabled, not disabled, so a keyboard user keeps the focus on it). */
-function syncSetup() {
-  const pressed = (box) => box.querySelector('.toggle[aria-pressed="true"]')?.textContent;
-  ui.setupHand.textContent = pressed(ui.hands) ?? ui.setupHand.textContent;
-  ui.setupObject.textContent = pressed(ui.objects) ?? ui.setupObject.textContent;
-  const busy = !ui.hands.querySelector('[data-hand]') || !ui.objects.querySelector('[data-object]')
-    || !!ui.pop.querySelector('[aria-disabled="true"]');
-  if (busy) ui.setup.setAttribute('aria-disabled', 'true');
-  else ui.setup.removeAttribute('aria-disabled');
-  for (const seg of segs) placeThumb(seg);
+// Hand, Object and Goal type are three labelled segmented controls in the control row (owner 2026-11-24, replacing
+// the "MANO · Round" setup menu, whose popover hid the hand and object choice). Their tabs change their pressed /
+// disabled marks in many places (switches, the worker's model message, a failed hand switch, a click on a node that
+// turns Random chain into Selected task): one observer per track keeps its thumb under the pressed tab.
+for (const seg of segs) {
+  new MutationObserver(() => placeThumb(seg)).observe(seg, { subtree: true, childList: true, attributes: true,
+    attributeFilter: ['aria-pressed', 'aria-disabled'] });
 }
-// the hand, object and mode tabs change their pressed / disabled marks in many places (switches, the worker's model
-// message, a failed hand switch, a click on a node that turns Random chain into Manual): one observer follows them all
-new MutationObserver(syncSetup).observe(ui.pop, { subtree: true, childList: true, attributes: true,
-  attributeFilter: ['aria-pressed', 'aria-disabled'] });
-new MutationObserver(() => placeThumb(segs[2])).observe(segs[2], { subtree: true, attributes: true,
-  attributeFilter: ['aria-pressed'] });
-
-/** The setup popover: opens from the button (click, Enter, Space), closes on Escape, a choice, a click or focus
- *  outside, or when the frame loses the focus (a click in the embedding page); Escape and a choice return the focus
- *  to the button. */
-function openSetup(open, refocus = false) {
-  if (open === !ui.pop.hidden) return;
-  ui.pop.hidden = !open;
-  ui.setup.setAttribute('aria-expanded', String(open));
-  if (open) {
-    for (const seg of [ui.hands, ui.objects]) placeThumb(seg);
-    (ui.hands.querySelector('[aria-pressed="true"]') ?? ui.hands.querySelector('button'))?.focus();
-  } else if (refocus) ui.setup.focus();
-}
-ui.setup.onclick = () => {
-  if (ui.setup.getAttribute('aria-disabled') === 'true' && ui.pop.hidden) return;
-  openSetup(ui.pop.hidden);
-};
-ui.setup.parentElement.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !ui.pop.hidden) {
-    e.preventDefault();
-    e.stopPropagation();
-    openSetup(false, true);
-  }
-});
-// a choice closes the popover after the tab's own handler has started the switch (bubbling order)
-ui.pop.addEventListener('click', (e) => { if (e.target.closest('.toggle')) openSetup(false, true); });
-ui.setup.parentElement.addEventListener('focusout', (e) => {
-  if (e.relatedTarget && !ui.setup.parentElement.contains(e.relatedTarget)) openSetup(false);
-});
-document.addEventListener('pointerdown', (e) => {
-  if (!ui.pop.hidden && !ui.setup.parentElement.contains(e.target)) openSetup(false);
-});
-window.addEventListener('blur', () => openSetup(false));
 
 ui.play.onclick = () => {
   pausedByPage = false; // the visitor's own choice: a later nav play does not override it

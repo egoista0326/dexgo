@@ -444,21 +444,22 @@ export const dexgoPage = {
     },
     objects: {
       heading: '*Unseen* everyday objects with different hands',
-      /** One swipeable row per hand; a hand without clips is left out (and with it the toggle). */
+      /** One swipeable row per hand, the first shown by default (owner 2026-11-24: Sharpa, as the live demo); a hand
+          without clips is left out (and with it the toggle). */
       hands: [
-        {
-          id: 'mano',
-          label: 'MANO hand',
-          // Paper wording (Sec. 4.1 / 4.4).
-          note: '', // owner 2026-11-22: no note under the MANO carousel
-          items: objectItems('mano', 'MANO')
-        },
         {
           id: 'sharpa',
           label: 'Sharpa Wave hand',
           // Paper wording (Sec. 4.4).
           note: 'The same framework also trains a policy for the Sharpa Wave hand, without hand-specific tuning.',
           items: objectItems('sharpa', 'Sharpa Wave')
+        },
+        {
+          id: 'mano',
+          label: 'MANO hand',
+          // Paper wording (Sec. 4.1 / 4.4).
+          note: '', // owner 2026-11-22: no note under the MANO carousel
+          items: objectItems('mano', 'MANO')
         }
       ].filter((hand) => hand.items.length > 0)
     },
