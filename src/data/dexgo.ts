@@ -409,7 +409,7 @@ export const dexgoPage = {
       heading: '*Long-horizon* manipulation: watch it, or run it live',
       /** Says what the stage holds before Start (owner 2026-11-24): the recorded chain, then, on its own emphasized
           line, the live demo and its three goal modes (random chain, selected task, manual goal). */
-      intro: 'A single policy can reach different goals in a row to perform long-horizon manipulation.',
+      intro: 'Reaching different goals one after another, a single policy performs long-horizon manipulation.',
       cta: 'Start the live demo to run it with random, selected, or manually specified goals!',
       // No caption under the demo (owner 2026-11-22); the line keeps only "Open in a new tab".
       caption: '',
