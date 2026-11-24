@@ -1983,6 +1983,13 @@ html:has(> body.page-dexgo .dx-localnav) {
   font: 400 15px/1.45 var(--dx-sans);
 }
 
+/* The Live demo intro's second line: the call to start the demo, in the accent colour. */
+.page-dexgo .dx-prose.dx-demo-cta {
+  margin-top: 8px;
+  color: var(--dx-accent);
+  font-weight: 600;
+}
+
 /* The Live demo part: the page's one tinted band, full-bleed (a box-shadow spread clipped to the band's own height,
    so nothing widens the page). */
 .dx-part-band {
