@@ -1002,7 +1002,7 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
   background: var(--dx-ink-hover);
 }
 
-/* Method figure: the paper's Fig. 2 with three marked regions and a row of links. */
+/* Method figure: the paper's Fig. 2 with three marked regions under a hint line. */
 
 .dx-method-figure {
   margin: 0;
@@ -1019,12 +1019,14 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
   height: auto;
 }
 
-/* Regions: invisible at rest (the link row is the affordance); on hover, or while their link is hovered or focused,
-   a teal tint and a 2 px teal ring, so the region shows even where the figure is already teal (the graph). */
+/* Regions: at rest a faint teal tint, a thin teal ring and a small teal down-arrow badge on the top-right corner (it
+   says "jumps down to a section"); on hover a stronger tint and a 2 px ring, so the region shows even where the figure
+   is already teal (the graph). */
 .dx-hotspot {
   position: absolute;
   border-radius: 6px;
-  background: transparent;
+  background: rgb(67 143 135 / 0.08);
+  box-shadow: inset 0 0 0 1.5px rgb(67 143 135 / 0.5);
   transition:
     background-color 150ms ease-out,
     box-shadow 150ms ease-out;
@@ -1034,6 +1036,38 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
 .dx-hotspot.is-lit {
   background: rgb(67 143 135 / 0.14);
   box-shadow: inset 0 0 0 2px var(--dx-accent);
+}
+
+.dx-hotspot-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--dx-accent);
+  box-shadow: 0 0 0 2px #fff;
+  transition: transform 150ms ease-out;
+}
+
+.dx-hotspot-badge svg {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dx-hotspot:hover .dx-hotspot-badge {
+  transform: translateY(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dx-hotspot:hover .dx-hotspot-badge {
+    transform: none;
+  }
 }
 
 /* The figure page (/dexgo/figure/): the figure at 1000 px in a box that scrolls sideways, under one back link; the
@@ -1161,37 +1195,23 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
   }
 }
 
-/* Below 864 px (the figure drawn under 800 px) a text link opens the full-size figure; below 720 px the whole image
-   does too. The " · " separators of the phone link line show only there. */
+/* Below 864 px (the figure drawn under 800 px) a text link under the figure opens the full-size figure; below 720 px
+   the whole image does too. From 864 px the line is not there. */
 .dx-method-zoom,
-.dx-spot-links .dx-method-open,
-.dx-spot-sep {
+.dx-spot-links {
   display: none;
 }
 
 @media (max-width: 863px) {
-  .dx-spot-links .dx-method-open {
-    display: inline-flex;
-    align-items: center;
+  .dx-spot-links {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+    font: 600 14px/1.45 var(--dx-sans);
   }
 }
 
-.dx-spot-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 32px;
-  margin-top: 16px;
-  font: 600 14px/1.45 var(--dx-sans);
-}
-
-/* The section links' row is a box of its own only on phones. */
-.dx-spot-row {
-  display: contents;
-}
-
-/* The same look as the page's other text controls (.dx-control): teal 600, the underline only on hover, or while its
-   region is hovered. */
+/* The same look as the page's other text controls (.dx-control): teal 600, the underline only on hover. */
 .dx-spot-links a {
   padding: 4px 0;
   color: var(--dx-ink);
@@ -1204,8 +1224,7 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
     text-decoration-color 150ms ease-out;
 }
 
-.dx-spot-links a:hover,
-.dx-spot-links a.is-lit {
+.dx-spot-links a:hover {
   color: var(--dx-ink-hover);
   text-decoration-color: currentColor;
 }
@@ -1587,11 +1606,8 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
     font-size: 22px;
   }
 
-  /* Phones: the figure is a thumbnail that opens the full-size figure. "Open the figure" is the one control, on its
-     own 32 px line; the three section links follow as one quiet row joined by " · ". A link never breaks, and its
-     tap area is its own 26 px line box, so the areas of two lines tile instead of overlapping. Where the three do
-     not fit on one line, the last link takes a line of its own and the separator before it becomes the line break
-     (below), so no line starts or ends with a dot. The separators take no taps. */
+  /* Phones: the figure is a thumbnail that opens the full-size figure; "Open the figure" is the one control, on its
+     own 32 px line. No regions or badges (the hint hides with them, below). */
   .dx-hotspot {
     display: none;
   }
@@ -1602,52 +1618,12 @@ body.page-dexgo:not(.page-dexgo-figure) .site-shell {
     inset: 0;
   }
 
-  .dx-spot-links {
-    container: dx-spot-links / inline-size;
-    display: block;
-    text-align: center;
-  }
-
   .dx-spot-links .dx-method-open {
     position: relative;
     z-index: 1;
     display: flex;
-    width: fit-content;
+    align-items: center;
     min-height: 32px;
-    margin-inline: auto;
-  }
-
-  .dx-spot-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    line-height: 26px;
-  }
-
-  .dx-spot-links a[data-spot] {
-    padding: 0;
-    font-weight: 400;
-    white-space: nowrap;
-  }
-
-  .dx-spot-sep {
-    display: block;
-    color: var(--dx-muted);
-    font-weight: 400;
-    white-space: pre;
-    pointer-events: none;
-  }
-}
-
-/* Phone link row narrower than the three links on one line (about 452 px of text, plus room for the fallback
-   face): the separator before the last link is an empty full-width item, so that link starts the next line. */
-@container dx-spot-links (max-width: 479px) {
-  .dx-spot-sep:last-of-type {
-    flex-basis: 100%;
-    height: 0;
-    overflow: hidden;
-    font-size: 0;
-    visibility: hidden;
   }
 }
 
@@ -2252,7 +2228,8 @@ html:has(> body.page-dexgo .dx-localnav) {
 
 /* Prerequisite graph: hint above, graph and player side by side from 864 px (420 : 356), every node marked as a
    button that plays a clip (a play glyph from the first frame, hover/focus ring, a "Play <task>" tooltip). */
-.page-dexgo .dx-unlock-hint {
+.page-dexgo .dx-unlock-hint,
+.dx-method-hint {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2262,10 +2239,23 @@ html:has(> body.page-dexgo .dx-localnav) {
   color: var(--dx-ink);
   font: 600 16px/1.3 var(--dx-sans);
 }
-.dx-unlock-hint svg {
+.dx-unlock-hint svg,
+.dx-method-hint svg {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.6;
+}
+/* The Method figure's hint: from 720 px only, where the regions are links (below, the thumbnail opens the figure).
+   Scoped to .page-dexgo so it outranks the rule above even where the build merges this block into an earlier one. */
+@media (max-width: 719px) {
+  .page-dexgo .dx-method-hint {
+    display: none;
+  }
+}
+.dx-method-hint svg {
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .dx-unlock-hint svg path {
   fill: currentColor;

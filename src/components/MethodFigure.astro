@@ -1,14 +1,13 @@
 ---
 // The paper's overview figure as a vector graphic (its web cut, with labels set for the 800 px column). Three
-// regions link to the subsections that explain them; the row of text links under the figure names them, in the
-// order of those subsections, and is the visible affordance (no outlines at rest). Hovering a region or hovering or
-// focusing its link tints and rings the region teal and underlines the link; the keyboard reaches the regions through
-// the link row, so the regions are pointer targets only. Below 864 px (the figure under 800 px, labels under the
-// readable size) an "Open the figure" link in the row opens the figure page (/dexgo/figure/), where it is 1000 px wide
-// in a horizontally scrolling box. Below 720 px the figure is a thumbnail: the regions are hidden, the whole image
-// opens the figure page too, "Open the figure" is the one control on its own line and the three section links follow
-// as a quiet row joined by " · " (the separators show only there; where the three do not fit on one line, the last
-// one goes to its own line without a separator). The figure is named by `label`; the link row is not its caption.
+// regions link to the subsections that explain them (which follow the figure directly, in the same order). The
+// affordance (owner 2026-11-24, replacing the row of section links): a hint line above the figure and, at rest, a
+// faint teal tint and ring on each region with a small down-arrow badge on its top-right corner; hovering a region
+// strengthens both. The
+// regions are pointer targets only: the keyboard reaches the subsections by reading on. Below 864 px (the figure
+// under 800 px, labels under the readable size) an "Open the figure" link under the figure opens the figure page
+// (/dexgo/figure/), where it is 1000 px wide in a horizontally scrolling box. Below 720 px the figure is a thumbnail:
+// the regions, their badges and the hint are hidden, and the whole image opens the figure page too.
 interface Hotspot {
   target: string;
   label: string;
@@ -24,16 +23,22 @@ interface Props {
   hotspots: Hotspot[];
   /** Accessible name of the figure. */
   label: string;
+  /** The line above the figure that says the regions are links (from 720 px). */
+  hint: string;
   /** Text of the link to the full-size figure (shown below 864 px), and that page's path. */
   openLabel: string;
   openHref: string;
 }
 
-const { src, width, height, alt, hotspots, label, openLabel, openHref } = Astro.props;
+const { src, width, height, alt, hotspots, label, hint, openLabel, openHref } = Astro.props;
 const pct = (value: number, total: number) => `${((value / total) * 100).toFixed(3)}%`;
 ---
 
 <figure class="dx-method-figure" aria-label={label} data-method-figure>
+  <p class="dx-method-hint" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="10" /><path d="M12 7v9M8 12.5l4 4 4-4" /></svg>
+    {hint}
+  </p>
   <div class="dx-method-stage" style={`aspect-ratio: ${width} / ${height}`}>
     <img src={src} alt={alt} width="800" height={Math.round((800 * height) / width)} decoding="async" loading="lazy" />
     <a class="dx-method-zoom" href={openHref} tabindex="-1" aria-hidden="true"></a>
@@ -47,40 +52,23 @@ const pct = (value: number, total: number) => `${((value / total) * 100).toFixed
           aria-hidden="true"
           data-spot={spot.target}
           style={`left: ${pct(spot.rect[0], width)}; top: ${pct(spot.rect[1], height)}; width: ${pct(spot.rect[2], width)}; height: ${pct(spot.rect[3], height)}`}
-        />
+        >
+          <span class="dx-hotspot-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="12" height="12" focusable="false"><path d="M12 5v13M6 12.5l6 6 6-6" /></svg>
+          </span>
+        </a>
       ))
     }
   </div>
   <div class="dx-spot-links">
     <a class="dx-method-open" href={openHref}>{openLabel}</a>
-    {
-      /* The section links' own row (a plain part of the link row from 720 px). No whitespace around the links: on
-         phones each is a flex item of that row, with the separators (no-break space, dot, space) between them;
-         where the three do not fit on one line, the last separator becomes the line break, so no line starts or
-         ends with a dot. */
-    }
-    <span class="dx-spot-row">
-      {
-        hotspots.map((spot, index) => (
-          <><a href={`#${spot.target}`} data-spot={spot.target}>{spot.label}</a>{index < hotspots.length - 1 ? <span class="dx-spot-sep" aria-hidden="true">{'\u00a0\u00b7 '}</span> : null}</>
-        ))
-      }
-    </span>
   </div>
 </figure>
 
 <script>
-  // Hovering or focusing a region or its link highlights both.
-  for (const figure of document.querySelectorAll<HTMLElement>('[data-method-figure]')) {
-    const all = [...figure.querySelectorAll<HTMLElement>('[data-spot]')];
-    for (const el of all) {
-      const mark = (on: boolean) => {
-        for (const other of all) other.classList.toggle('is-lit', on && other.dataset.spot === el.dataset.spot);
-      };
-      el.addEventListener('pointerenter', () => mark(true));
-      el.addEventListener('pointerleave', () => mark(false));
-      el.addEventListener('focus', () => mark(true));
-      el.addEventListener('blur', () => mark(false));
-    }
+  // Hovering a region marks it (tint and ring, global.css).
+  for (const spot of document.querySelectorAll<HTMLElement>('[data-method-figure] [data-spot]')) {
+    spot.addEventListener('pointerenter', () => spot.classList.add('is-lit'));
+    spot.addEventListener('pointerleave', () => spot.classList.remove('is-lit'));
   }
 </script>

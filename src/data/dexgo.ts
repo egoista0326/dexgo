@@ -290,7 +290,7 @@ export const dexgoPage = {
       height: 250.56,
       alt: 'Overview of DexGO: a single policy observes goal errors, local geometry and proprioception and is trained with an annealed kernel reward on tasks and goals sampled from the prerequisite graph; a grasp library supplies initial and target grasps.',
       /** Clickable regions in viewBox units: [x, y, w, h]. */
-      // In the order of the subsections they jump to (graph, kernel, encoding), which is the link row's order.
+      // In the order of the subsections they jump to (graph, kernel, encoding).
       hotspots: [
         { target: 'prerequisite-graph', label: 'Prerequisite graph', rect: [486.8, 1.5, 226.4, 138] },
         { target: 'annealed-kernel-reward', label: 'Annealed kernel reward', rect: [215, 84, 163, 26] },
@@ -298,6 +298,8 @@ export const dexgoPage = {
       ] as { target: string; label: string; rect: [number, number, number, number] }[],
       /** Accessible name of the figure (the image's alt describes it). */
       label: 'Overview of DexGO',
+      /** Says the marked regions jump to the subsections below (owner 2026-11-24, in place of the link row). */
+      hint: 'Click a marked part to jump to its section',
       /** Link to the figure page, shown below 864 px where the figure is drawn under 800 px (a thumbnail below 720 px):
           src/pages/figure.astro. */
       openLabel: 'Open the figure',
