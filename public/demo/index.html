@@ -423,6 +423,14 @@
       .editor-box input[type="range"]::-moz-range-track { height: calc(4 * var(--u)); }
       .editor-box input[type="range"]::-webkit-slider-thumb { margin-top: calc(2 * var(--u) - var(--r)); }
       .ed-go { min-height: calc(32 * var(--u)); min-width: calc(84 * var(--u)); padding: calc(4 * var(--u)) calc(20 * var(--u)); }
+      /* while a Manual goal runs (owner 2026-11-26; app/main.js syncRunView, body[data-run]) the view grows: opened
+         alone, this box grows by the panel's height less its peek strip (--below: from the panel's first line of
+         grasp chips to the content's bottom), so the controls, the view (the 1fr row) and the status fill the small
+         viewport and the panel, unchanged, shows its Grasp type heading and first chips above the viewport's bottom
+         edge; the page scrolls. Embedded, the project page grows the frame instead (100dvh follows). The height
+         eases both ways (body[data-run-anim], 0.4 s around each change). */
+      :root[data-standalone] body[data-run] .demo { height: calc(100svh + var(--below, 0px)); }
+      body[data-run-anim] .demo { transition: height 280ms var(--ease); }
     }
   </style>
   <script type="importmap">

@@ -1988,6 +1988,8 @@ html:has(> body.page-dexgo .dx-localnav) {
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 28px rgb(0 0 0 / 0.06);
+  /* a Manual goal's taller stage on phones (LazyDemo.astro grow: explicit heights only; none under reduced motion) */
+  transition: height 280ms var(--dx-ease);
 }
 /* Before a start the whole card starts the demo (LazyDemo.astro). */
 .dx-demo:not(.is-started) .dx-demo-stage {

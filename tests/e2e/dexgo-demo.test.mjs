@@ -80,3 +80,186 @@ test('alone at /dexgo/demo/: the demo starts and completes goals; nothing fails 
     await context.close();
   }
 });
+
+// Owner 2026-11-26 (phones, Manual goal): while a goal set with Go runs, the demo asks for a taller stage
+// ('dexgo-demo-grow'); its view then fills most of the screen under the sticky nav (>= 72 %), its status (Pause /
+// Reset) stays on screen and the Manual goal panel waits below the screen's edge but for a peek strip (follow-up: its
+// top, 30-70 px, with the whole Grasp type heading and no control cut by the edge); at the goal's end the stage is its
+// 9:16 frame again, placed so Go is on screen. A short goal keeps the grown stage 2 s from its growth (follow-up),
+// then the compact frame. Turned to landscape (667 x 375), it does not grow.
+test('phone 390 x 844, Manual goal: the stage grows while a goal runs (a peek strip of the panel, at least 2 s) and is the compact frame again at its end', { timeout: 900000 }, async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const page = await context.newPage();
+  const problems = watch(page);
+  try {
+    await page.goto(`${base}/dexgo/#live-demo`, { waitUntil: 'load' });
+    const iframe = await page.waitForSelector('#live-demo iframe', { timeout: 30000 });
+    // the frame placed 8 px under the nav (the reader's scroll; an off-screen demo pauses itself)
+    const navBottom = () => page.evaluate(() => document.querySelector('.dx-localnav').getBoundingClientRect().bottom);
+    await page.evaluate(() => {
+      const top = document.querySelector('#live-demo iframe').getBoundingClientRect().top;
+      window.scrollBy(0, top - (document.querySelector('.dx-localnav').getBoundingClientRect().bottom + 8));
+    });
+    const frame = await iframe.contentFrame();
+    await frame.waitForFunction(() => document.querySelector('[data-mode="editor"]')?.disabled === false && document.body.dataset.state === 'playing', null, { timeout: 240000 });
+    await frame.click('[data-mode="editor"]');
+    await frame.waitForFunction(() => !document.getElementById('ed-roll').disabled && document.getElementById('ed-roll-out').textContent !== '', null, { timeout: 240000 });
+    const compact = (await iframe.boundingBox()).height;
+    await frame.evaluate(() => {
+      const el = document.getElementById('ed-x');
+      el.value = '150';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await frame.waitForFunction(() => !document.getElementById('ed-go').disabled, null, { timeout: 60000 });
+    await frame.click('#ed-go');
+    await frame.waitForFunction(() => document.body.dataset.run !== undefined, null, { timeout: 60000 });
+    // Pause at once: the goal still runs (the view stays grown) however slow the runner is; then the height's ease
+    // (280 ms) and the camera settle. A click in the frame's script, so nothing scrolls the page.
+    await frame.evaluate(() => document.getElementById('play').click());
+    await page.waitForTimeout(1000);
+    assert.ok(await frame.evaluate(() => document.body.dataset.run !== undefined), 'the goal ended before it was measured');
+    const grown = await iframe.boundingBox();
+    const visible = 844 - (await navBottom());
+    const inFrame = await frame.evaluate(() => ({ view: document.getElementById('view').getBoundingClientRect().height,
+      status: document.querySelector('.status').getBoundingClientRect().bottom, panel: document.getElementById('editor').getBoundingClientRect().top,
+      head: document.querySelector('#editor .ed-head').getBoundingClientRect().bottom,
+      rows: [...document.querySelectorAll('#editor .ed-type, #editor .ed-row:not(.ed-grasp)')].map((el) => [el.getBoundingClientRect().top, el.getBoundingClientRect().bottom]) }));
+    assert.ok(grown.height > compact + 300, `stage ${compact} -> ${grown.height} px`);
+    assert.ok(inFrame.view >= 0.72 * visible, `view ${inFrame.view} px of ${visible} px under the nav`);
+    assert.ok(grown.y + inFrame.status <= 844 + 0.5, `status bottom at ${grown.y + inFrame.status} px`);
+    // the peek strip: the panel's top on screen, its first heading whole, no grasp row or slider row cut by the edge
+    const strip = 844 - (grown.y + inFrame.panel);
+    assert.ok(strip >= 30 && strip <= 70, `peek strip ${strip} px`);
+    assert.ok(grown.y + inFrame.head <= 844, `Grasp type heading bottom at ${grown.y + inFrame.head} px`);
+    const cut = inFrame.rows.filter(([t, b]) => grown.y + t < 844 - 0.5 && grown.y + b > 844 + 0.5);
+    assert.deepEqual(cut, [], 'a panel row is cut by the screen edge');
+    // play on to the goal's end (reached, not reached or dropped): the compact frame again, Go on screen
+    await frame.evaluate(() => document.getElementById('play').click());
+    await frame.waitForFunction(() => document.body.dataset.run === undefined, null, { timeout: 300000, polling: 250 });
+    await page.waitForTimeout(800);
+    const back = await iframe.boundingBox();
+    const go = await frame.evaluate(() => document.getElementById('ed-go').getBoundingClientRect().bottom);
+    assert.ok(Math.abs(back.height - compact) < 1, `stage ${back.height} px, compact ${compact} px`);
+    assert.ok(back.y + go <= 844 && back.y >= (await navBottom()), `Go bottom at ${back.y + go} px, frame top ${back.y} px`);
+    // a short goal (Right +20 mm, reached in about 0.5 s in software WebGL): the stage stays grown until 2 s after its
+    // growth (the panel's controls unlock at the goal's end meanwhile), then the compact frame with Go on screen
+    await frame.waitForFunction(() => !document.getElementById('ed-roll').disabled && document.getElementById('ed-roll-out').textContent !== '', null, { timeout: 240000 });
+    await frame.evaluate(() => {
+      const el = document.getElementById('ed-x');
+      el.value = '20';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await frame.waitForFunction(() => !document.getElementById('ed-go').disabled, null, { timeout: 60000 });
+    await frame.evaluate(() => {
+      const roll = document.getElementById('ed-roll');
+      window.__runAt = [];
+      new MutationObserver(() => window.__runAt.push([document.body.dataset.run !== undefined, performance.now()]))
+        .observe(document.body, { attributes: true, attributeFilter: ['data-run'] });
+      // the goal's end as the reader sees it: the controls unlocked again after Go
+      new MutationObserver(() => {
+        if (!roll.disabled && window.__runAt.length && window.__endAt === undefined) window.__endAt = performance.now();
+      }).observe(roll, { attributes: true, attributeFilter: ['disabled'] });
+      document.getElementById('ed-go').click();
+    });
+    await frame.waitForFunction(() => window.__endAt !== undefined, null, { timeout: 60000, polling: 50 });
+    const ended = await frame.evaluate(() => ({ ms: window.__endAt - window.__runAt[0][1], run: document.body.dataset.run !== undefined }));
+    assert.ok(ended.ms < 1700, `the short goal took ${Math.round(ended.ms)} ms from the growth (the hold is not tested)`);
+    assert.ok(ended.run, 'the stage shrank at the short goal\'s end');
+    await page.waitForTimeout(Math.max(0, 1500 - ended.ms));
+    const held = await iframe.boundingBox();
+    assert.ok(held.height > compact + 300, `stage ${held.height} px 1.5 s after the growth (compact ${compact} px)`);
+    await frame.waitForFunction(() => document.body.dataset.run === undefined, null, { timeout: 10000, polling: 20 });
+    const hold = await frame.evaluate(() => window.__runAt.find(([on]) => !on)[1] - window.__runAt[0][1]);
+    assert.ok(hold >= 1990 && hold <= 2400, `grown for ${Math.round(hold)} ms`);
+    await page.waitForTimeout(800);
+    const shortBack = await iframe.boundingBox();
+    const shortGo = await frame.evaluate(() => document.getElementById('ed-go').getBoundingClientRect().bottom);
+    assert.ok(Math.abs(shortBack.height - compact) < 1, `stage ${shortBack.height} px, compact ${compact} px`);
+    assert.ok(shortBack.y + shortGo <= 844 && shortBack.y >= (await navBottom()), `Go bottom at ${shortBack.y + shortGo} px`);
+    // a Go during that hold: the reader scrolls down to Go (below the screen's edge while grown) and taps it; the stage
+    // stays grown and is placed again (top 8 px under the nav), so the new goal's view is on screen
+    const setX = (v) => frame.evaluate((x) => {
+      const el = document.getElementById('ed-x');
+      el.value = String(x);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, v);
+    await frame.waitForFunction(() => !document.getElementById('ed-roll').disabled && document.getElementById('ed-roll-out').textContent !== '', null, { timeout: 240000 });
+    await setX(-20);
+    await frame.waitForFunction(() => !document.getElementById('ed-go').disabled, null, { timeout: 60000 });
+    await frame.evaluate(() => {
+      window.__runAt = [];
+      window.__endAt = undefined;
+      document.getElementById('ed-go').click();
+    });
+    // its end and the fresh start's preview (a slider moved before that preview arrives is set back by it)
+    await frame.waitForFunction(() => window.__endAt !== undefined && document.getElementById('ed-roll-out').textContent !== '', null, { timeout: 60000, polling: 50 });
+    await setX(20);
+    await frame.waitForFunction(() => !document.getElementById('ed-go').disabled, null, { timeout: 60000 });
+    const goBox = async () => {
+      const f = await iframe.boundingBox();
+      const b = await frame.evaluate(() => { const r = document.getElementById('ed-go').getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.bottom]; });
+      return { x: f.x + b[0], y: f.y + b[1], bottom: f.y + b[2] };
+    };
+    await page.evaluate((dy) => window.scrollBy(0, dy), Math.round((await goBox()).bottom - (844 - 40)));
+    await page.waitForTimeout(150);
+    const tapAt = await goBox();
+    const heldAtTap = await frame.evaluate(() => {
+      const roll = document.getElementById('ed-roll');
+      window.__lockedAt = undefined; // the new goal's start: the controls locked
+      new MutationObserver(() => { if (roll.disabled && window.__lockedAt === undefined) window.__lockedAt = performance.now(); })
+        .observe(roll, { attributes: true, attributeFilter: ['disabled'] });
+      return [document.body.dataset.run !== undefined, performance.now() - window.__runAt[0][1]];
+    });
+    assert.ok(heldAtTap[0], `the hold was over at the tap (${Math.round(heldAtTap[1])} ms after the growth)`);
+    // per painted frame until the shrink: the stage's top and height, and whether the demo is grown
+    await page.evaluate(() => {
+      const f = document.querySelector('#live-demo iframe');
+      window.__placed = [];
+      const loop = () => {
+        const r = f.getBoundingClientRect(), run = f.contentDocument.body.dataset.run !== undefined;
+        window.__placed.push([r.top, r.height, run]);
+        if (run) requestAnimationFrame(loop);
+      };
+      requestAnimationFrame(loop);
+    });
+    await page.touchscreen.tap(tapAt.x, tapAt.y);
+    await frame.waitForFunction(() => window.__lockedAt !== undefined, null, { timeout: 10000, polling: 20 });
+    await frame.waitForFunction(() => document.body.dataset.run === undefined, null, { timeout: 60000, polling: 50 });
+    const top = (await navBottom()) + 8;
+    const placed = await page.evaluate(() => window.__placed);
+    assert.ok(placed.some(([y, h, run]) => run && h > 600 && Math.abs(y - top) < 1.5),
+      `the grown stage was not placed after a Go during the hold (top ${Math.round(placed[0][0])} -> ${Math.round(placed[placed.length - 1][0])} px)`);
+    await page.waitForTimeout(800);
+    assert.ok(Math.abs((await iframe.boundingBox()).height - compact) < 1, 'not the compact frame after the goal started in the hold');
+    // turned to a small landscape phone (667 x 375: the page's 9:16 stage, taller than the screen): a goal runs in the
+    // compact frame, the stage does not grow (the demo still asks)
+    await page.setViewportSize({ width: 667, height: 375 });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      const top = document.querySelector('#live-demo iframe').getBoundingClientRect().top;
+      window.scrollBy(0, top - (document.querySelector('.dx-localnav').getBoundingClientRect().bottom + 8));
+    });
+    await frame.waitForFunction(() => !document.getElementById('ed-roll').disabled && document.getElementById('ed-roll-out').textContent !== '', null, { timeout: 240000 });
+    const flat = (await iframe.boundingBox()).height;
+    await frame.evaluate(() => {
+      const el = document.getElementById('ed-x');
+      el.value = '-170'; // back to where the first goal started (the sliders are relative to the current pose)
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await frame.waitForFunction(() => !document.getElementById('ed-go').disabled, null, { timeout: 60000 });
+    await frame.evaluate(() => document.getElementById('ed-go').click());
+    await frame.waitForFunction(() => document.body.dataset.run !== undefined, null, { timeout: 60000 });
+    await frame.evaluate(() => document.getElementById('play').click());
+    await page.waitForTimeout(800);
+    const landscape = await page.evaluate(() => ({ height: document.querySelector('#live-demo iframe').getBoundingClientRect().height,
+      style: document.querySelector('[data-demo-frame]').style.height }));
+    assert.ok(Math.abs(landscape.height - flat) < 1 && landscape.style === '', `landscape stage ${flat} -> ${landscape.height} px (${landscape.style})`);
+    assert.deepEqual(problems, []);
+  } finally {
+    await context.close();
+  }
+});

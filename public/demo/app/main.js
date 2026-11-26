@@ -50,7 +50,7 @@ import { toCreasedNormals } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fetchLoader } from '../engine/loader.js';
 import { AxesOverlay } from './axes_overlay.js';
 import { SKIN } from './config.js';
-import { deadbandAim, goalViewDir } from './follow.js';
+import { deadbandAim, goalViewDir, refitDistance } from './follow.js';
 import { graspRows } from './grasp_labels.js';
 import { ROWS, TaskGraph, taskWords } from './graph.js';
 import { decodeVisual, partOffsets, resolveHands } from './hands.js';
@@ -367,9 +367,16 @@ function resize() {
   axes.resize(w, h, renderer.getPixelRatio());
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
-  if (w !== follow.size?.[0] || h !== follow.size?.[1]) follow.frozen = false; // re-fit at a new size
+  if (w !== follow.size?.[0] || h !== follow.size?.[1]) {
+    follow.frozen = false; // re-fit at a new size
+    // and at once (followStep): the zoom takes the new size in this frame, so a view that grows or shrinks over a
+    // transition (Manual goal's running view on phones, syncRunView) keeps the hand framed at every step instead of
+    // drawing the old distance at the new size (the hand magnified past the view's sides, then eased back).
+    // follow.refit: the height ratio new / old since the last frame (several resizes before a frame compound)
+    if (follow.size?.[1] > 0) follow.refit = (follow.refit || 1) * (Math.max(h, 1) / follow.size[1]);
+  }
   follow.size = [w, h];
-  kick(); // redraw at the new size (the loop may be stopped)
+  drawNow(); // redraw at the new size (the loop may be stopped)
 }
 new ResizeObserver(resize).observe(ui.view);
 
@@ -756,7 +763,7 @@ const FOLLOW = { tau: 0.35, margin: 0.045, scale: [1350, 3200], extent: 0.279 };
 const CAMERA_MODE = params.get('camera');
 const follow = { target: new THREE.Vector3(), distance: 1, manual: 0, applied: 0, snap: true, reserve: 0,
   anchor: new THREE.Vector3(), anchorDistance: 0, reaim: true, heading: 0, dir: null, drop: 0,
-  lastDir: new THREE.Vector3() };
+  lastDir: new THREE.Vector3(), refit: 0 };
 // Set goal camera (lead 2026-11-23, relative_sweep/RESULTS.md section 6): the once-per-goal re-aim stays; for editor
 // goals the zoom-out floor is EDITOR_VIEW.scale px per metre (the hand's own floor when lower: Sharpa 600) or, when
 // that is tighter, the distance at which EDITOR_VIEW.extent (m) fills the view's shorter side (owner 2026-11-23,
@@ -900,6 +907,22 @@ function followStep(dt) {
   if (follow.frozen) return 0;
   let raw = followAim();
   if (raw === null) return 0;
+  // a new view size (resize): aim at the span once, and both the aim and the distance at once (app/follow.js
+  // refitDistance: the span's fit in a taller view, never a zoom-in as it shrinks); the aim depends on the height (the
+  // reserve under the Goal type control, about 56 px, is half of a 115 px view and a tenth of a 640 px one), so an
+  // eased aim lagged its new place and carried the hand past the bottom edge in the first frames of a growth (MANO,
+  // 7-16 px). A zoom of the viewer's own keeps its ratio to the automatic distance; an eased view turn (follow.dir)
+  // stays eased.
+  const refit = follow.refit > 0;
+  if (refit) {
+    const d = refitDistance(raw, follow.distance, follow.refit);
+    follow.refit = 0;
+    follow.reaim = false;
+    follow.anchor.copy(fw.raw);
+    follow.anchorDistance = d;
+    if (follow.manual) follow.manual *= d / Math.max(follow.distance, 1e-6);
+    follow.distance = d;
+  }
   if (follow.reaim) { // a new goal (or a cut): aim at the span once
     follow.anchor.copy(fw.raw);
     follow.anchorDistance = raw;
@@ -931,7 +954,7 @@ function followStep(dt) {
   const k = follow.snap || residual < 1 || (paused && pausedFor > FOLLOW.pauseCap) ? 1 : 1 - Math.exp(-dt / tau);
   if (paused && k === 1) follow.frozen = true;
   follow.snap = false;
-  follow.target.lerp(fw.raw, k);
+  follow.target.lerp(fw.raw, refit ? 1 : k);
   follow.distance += (raw - follow.distance) * k;
   setZoomBounds(follow.distance); // the viewer's zoom stays within ZOOM.range of the automatic distance
   const direction = fw.p.subVectors(camera.position, controls.target).normalize();
@@ -1136,6 +1159,7 @@ STACKED.addEventListener('change', () => {
   graph?.setCompact(STACKED.matches);
   follow.snap = true;
   resize();
+  syncRunView(); // Manual goal's running view only in the stacked layout
 });
 
 /** Write a text only when it changes (frames arrive at 40 Hz). */
@@ -1468,7 +1492,11 @@ function onFrame(msg) {
   // Manual: a failure (a timeout or drop starts a fresh grasp; a recovery keeps the grasp) clears the runner's queue, or
   // drops a queued task the grasp no longer offers. The task the viewer clicked is queued again when the grasp offers
   // it (it starts after the fresh start's hold), else its node shows the refusal outline; either way it is said.
-  if (editing && (msg.cut || events.some((e) => ['done', 'recover', 'restart', 'end', 'drop'].includes(e.type)))) editorFresh();
+  // (a goal's end, reached or not, keeps a grown running view its RUN_MIN_MS; Reset and a hand or object switch end it
+  // at once: syncRunView)
+  if (editing && (msg.cut || events.some((e) => ['done', 'recover', 'restart', 'end', 'drop'].includes(e.type)))) {
+    editorFresh(msg.cut === 'reset' || msg.cut === 'load' || msg.cut === 'hand' || msg.cut === 'init');
+  }
   const failed = events.some((e) => e.type === 'restart' || e.type === 'recover');
   if (failed && wantedNext && msg.chain?.mode === 'manual' && !msg.chain.queued && msg.chain.phase !== 'ended') {
     const node = wantedNext;
@@ -1614,6 +1642,8 @@ for (const b of ui.modes) {
     showMode(b.dataset.mode);
     worker.postMessage({ type: 'mode', mode: b.dataset.mode });
     document.body.dataset.mode = b.dataset.mode;
+    edRunning = false; // leaving Manual goal (or entering it: editorFresh) ends its running view
+    syncRunView(true); // at once: the new mode's layout shows in this frame
     restoreView(); // the default view back (eased), in the new mode's zoom limits
     if (b.dataset.mode === 'editor') editorFresh();
     say(`${MODE_NAMES[b.dataset.mode]}. ${MODE_DESC[b.dataset.mode]}`);
@@ -1696,8 +1726,11 @@ function editorLock(on) {
   for (const b of ed.grasp.querySelectorAll('button')) b.disabled = on;
   ed.go.disabled = on || !ed.design || ed.noop;
 }
-/** A fresh start from the runner's current design (after a goal, a recovery, a fresh grasp, a load or the mode). */
-function editorFresh() {
+/** A fresh start from the runner's current design (after a goal, a recovery, a fresh grasp, a load or the mode).
+ *  `now`: Reset, a hand or object switch (the compact layout at once, no RUN_MIN_MS hold). */
+function editorFresh(now = false) {
+  edRunning = false; // whatever ran has ended: the compact layout for the next goal
+  syncRunView(false, now);
   ed.design = null;
   editorLock(true);
   worker?.postMessage({ type: 'editor', seq: ++ed.seq, setting: null, awayDeg: awayDeg() });
@@ -1810,7 +1843,12 @@ function onEditor(msg) {
     if (o?.enabled) b.removeAttribute('aria-disabled'); else b.setAttribute('aria-disabled', 'true');
   }
   for (const k of ED_KEYS) paintSlider(k);
-  if (msg.started) { editorLock(true); return; }
+  if (msg.started) { // Go: the goal runs; on phones the view grows until it ends (editorFresh)
+    editorLock(true);
+    edRunning = true;
+    syncRunView();
+    return;
+  }
   if (msg.custom) editorLock(false); // Go was refused (a no-op): the preview below
   if (msg.goal) setGoal(msg.goal, msg.ghost, false); // a preview: no re-aim
   const sn = msg.applied;
@@ -1848,6 +1886,101 @@ ed.form.addEventListener('submit', (e) => {
   syncPlay();
 });
 editorLock(true);
+
+// Manual goal's running view (owner 2026-11-26, MUST, phones): in the stacked layout the Manual goal panel leaves the
+// view 136-159 px of the project page's phone frames (154-343 px opened alone on 375-430 px phones), too small to
+// follow the hand. While a goal started by Go runs (edRunning: onEditor's
+// msg.started until editorFresh, i.e. reached, not reached (a recovery or a fresh start), dropped, Reset, a hand or
+// object switch, or another mode), the frame grows by the height of everything from the panel's top down less a peek
+// strip (`below` = panelBelow - panelPeek): the grid's 1fr row, the view, takes all of it, so the controls, the view
+// and the status fill the screen and the panel, unchanged, starts just above the screen's bottom edge, where its first
+// section heading (Grasp type, with its hairline) and its first line of grasp chips show: the reader sees that the
+// controls go on below and scrolls down to them (follow-up, owner 2026-11-26: the view gives up only that strip,
+// 38-60 px). The grown view stays at least RUN_MIN_MS (2 s, follow-up): a goal that ends sooner shrinks it 2 s after
+// the growth started (a new Go meanwhile keeps it grown and places it again); Reset, a hand or object switch,
+// another mode and a layout that does not grow (landscape, side by side) shrink it at once. Setting a goal keeps the
+// compact layout; the side-by-side layout (desktops, landscape phones from 780 px) never grows, nor does a landscape
+// window (fix 2026-11-26: landscape phones under 780 px, e.g. 667 x 375, are stacked, but their frame is taller than the
+// screen, so the view gained 2-39 px there; landscape stays as it was). Embedded, the page grows its stage
+// ('dexgo-demo-grow' {grow, below, instant}; LazyDemo.astro: the screen's height under its nav, 8 px gap, plus below;
+// only in its stacked media and portrait; the stage placed under the nav, its height eased) and this frame's 100dvh
+// layout follows; opened alone, the demo's own box grows (index.html body[data-run]: 100svh + --below), eased
+// (body[data-run-anim]), the window scrolled to its top. A switch of Goal type shrinks it at once (`instant`: the
+// layout changes in the same frame, the Random chain graph is shorter than the panel, so an eased shrink first grew
+// the view past its running height). The view resizes at every step (resize: drawn at once, the zoom fitted at once).
+// body[data-run] marks the grown state (embedded: asked of the page; tests).
+let edRunning = false; // a goal started by Go runs
+let runView = false, runBelow = 0, runAnim = 0; // the frame is grown; its below (CSS px) as reported; the ease timer
+// the grown view's least duration (ms, from the growth's start): a short goal would grow and shrink it within about
+// 1.3 s (owner 2026-11-26 follow-up: at least 2 s)
+const RUN_MIN_MS = 2000;
+let runSince = 0, runHold = 0; // performance.now() when the frame grew; the timer of a shrink held back to RUN_MIN_MS
+let runHeld = false; // the frame is grown only by that hold (its goal has ended)
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
+const PORTRAIT = matchMedia('(orientation: portrait)');
+/** The frame's height from the Manual goal panel's top down (CSS px). Down to the content's bottom (the panel's bottom
+ *  plus the frame's bottom padding), not only to the .demo box's: in the page's narrowest frames (300 px wide, phones
+ *  under 336 px) the compact content is taller than the box. */
+function panelBelow() {
+  const demo = document.querySelector('.demo'), box = demo.getBoundingClientRect(), form = ed.form.getBoundingClientRect();
+  return Math.round(Math.max(box.bottom, form.bottom + (parseFloat(getComputedStyle(demo).paddingBottom) || 0)) - form.top);
+}
+/** The peek strip (CSS px): the panel's part that stays on screen above its bottom edge while the frame is grown, from
+ *  the panel's top (its first section heading, Grasp type) to the middle of the gap under the first line of grasp
+ *  chips, so no control is cut (38-60 px on 320-768 px wide portrait screens; the heading's bottom + 8 px before the
+ *  chips are built). */
+function panelPeek() {
+  const top = ed.form.getBoundingClientRect().top, chip = ed.grasp.querySelector('.ed-choice');
+  if (!chip) return Math.round(ed.form.querySelector('.ed-head').getBoundingClientRect().bottom + 8 - top);
+  return Math.round(chip.getBoundingClientRect().bottom + (parseFloat(getComputedStyle(ed.grasp).rowGap) || 0) / 2 - top);
+}
+/** Grow or shrink the frame to match edRunning, the layout and the mode; again with a new below (a width change).
+ *  A goal's end keeps it grown until RUN_MIN_MS after the growth started (a timer calls again); `now` shrinks it at
+ *  once (Reset, a hand or object switch, another mode). `instant`: a shrink without the ease (a switch of Goal type).
+ *  A Go during the hold sends the grown state again, so the frame is placed as at any Go: the reader scrolled down
+ *  to Go, below the screen's edge, and the new goal's view would stay partly above the screen. */
+function syncRunView(instant = false, now = instant) {
+  const fits = SCENE === 'chain' && STACKED.matches && (EMBEDDED || PORTRAIT.matches) && document.body.dataset.mode === 'editor';
+  let on = edRunning && fits;
+  const again = on && runHeld; // a Go during the hold
+  clearTimeout(runHold);
+  runHeld = false;
+  if (!on && runView && fits && !now) { // a goal ended: held until RUN_MIN_MS after the growth
+    const wait = runSince + RUN_MIN_MS - performance.now();
+    if (wait > 1) {
+      runHold = setTimeout(() => syncRunView(), wait);
+      on = runHeld = true;
+    }
+  }
+  const below = on ? Math.max(0, panelBelow() - panelPeek()) : 0;
+  // 1 px: the rounding between the measures in the compact and the grown layouts (a resend moves the frame 1 px and
+  // places it again, which scrolls a reader who went down to the sliders back up before the shrink)
+  if (!again && on === runView && (!on || Math.abs(below - runBelow) < 2)) return;
+  if (on && !runView) runSince = performance.now();
+  runView = on;
+  runBelow = below;
+  if (EMBEDDED) {
+    tellPage('dexgo-demo-grow', { grow: on, below, instant });
+  } else {
+    if (on) document.documentElement.style.setProperty('--below', `${below}px`);
+    clearTimeout(runAnim);
+    if (instant) delete document.body.dataset.runAnim;
+    else {
+      document.body.dataset.runAnim = ''; // the height eases (index.html), both ways
+      runAnim = setTimeout(() => delete document.body.dataset.runAnim, 400);
+    }
+    if (on && window.scrollY > 0) window.scrollTo({ top: 0, behavior: REDUCED_MOTION.matches ? 'auto' : 'smooth' });
+  }
+  if (on) document.body.dataset.run = ''; else delete document.body.dataset.run;
+}
+let runWidth = window.innerWidth;
+// a width change reflows the panel (its height, so below); a height change does not (a rotation changes the width)
+window.addEventListener('resize', () => {
+  if (window.innerWidth === runWidth) return;
+  runWidth = window.innerWidth;
+  syncRunView();
+});
+PORTRAIT.addEventListener('change', () => syncRunView()); // opened alone: a window turned landscape by its height
 
 /** A click on an available node: queue it as the next goal (it starts once the running goal is done, at once when
  *  the runner waits); in Random chain the click switches to Manual first. It also starts a paused simulation. The
@@ -2089,6 +2222,15 @@ function kick() {
   if (rafId || inFrame || !shown()) return; // inside a frame the frame itself decides whether to go on
   stats.last = 0; // no time jump after a stop
   rafId = requestAnimationFrame(animate);
+}
+/** Draw a frame now, not at the next animation frame (resize): a new canvas size clears its pixels, and this frame is
+ *  painted before the next animation frame, so the view showed empty for a frame; a view resized at every frame of a
+ *  transition (Manual goal's running view, syncRunView) showed empty throughout. The loop goes on from here. */
+function drawNow() {
+  if (inFrame || !shown()) { kick(); return; }
+  if (!rafId) stats.last = 0; // a stopped loop: no time jump (kick)
+  cancelAnimationFrame(rafId);
+  animate(performance.now());
 }
 
 function animate(now) {

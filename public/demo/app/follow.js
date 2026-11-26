@@ -40,3 +40,20 @@ export function goalViewDir(base, turnDeg, palmDeg, prevDrop, elevation, lowDeg)
   const el = Math.min(79 * DEG, Math.max(-4 * DEG, el0 + drop - prevDrop));
   return { dir: [Math.cos(el) * Math.cos(az), Math.cos(el) * Math.sin(az), Math.sin(el)], drop };
 }
+
+/**
+ * The follow camera's distance at once after a resize of the view (main.js followStep, follow.refit; owner 2026-11-26:
+ * Manual goal's view grows while a goal runs on phones and shrinks back at its end, over a short transition). With a
+ * fixed vertical field of view the drawn scale is H / (2 d tan(fov / 2)) px per metre, so the old distance at a new
+ * height H' would magnify the scene by H' / H (a taller view cut the hand at its sides, then eased back). A taller view
+ * takes the span's fit at its new size at once; a shorter one keeps at least the distance of the old scale
+ * (distance x H' / H), so it never zooms in as it shrinks (the eased aim then cannot carry the hand past the edges;
+ * the follow deadband never zooms in during a goal either), and zooms out only as far as the span needs.
+ * @param {number} fit the span's fitted distance at the new size (m; main.js followAim)
+ * @param {number} distance the automatic distance before the resize (m)
+ * @param {number} ratio the view's height ratio new / old (> 0)
+ * @returns {number} the distance to use at once (m)
+ */
+export function refitDistance(fit, distance, ratio) {
+  return ratio < 1 ? Math.max(fit, distance * ratio) : fit;
+}
